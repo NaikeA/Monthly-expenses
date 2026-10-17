@@ -19,7 +19,7 @@ for(const t of data.transactions)if(!t.group)t.group=inferCategory(t.category);
 const categoryOptions=selected=>[...new Set([...data.categories,selected].filter(Boolean))].map(c=>'<option value="'+esc(c)+'" '+(selected===c?"selected":"")+'>'+esc(c)+'</option>').join("");
 let page="dashboard";const monthly=()=>data.transactions.filter(t=>t.date.slice(0,7)===month.value),income=()=>data.incomes[month.value]??data.income,actual=()=>sum(monthly().filter(t=>t.kind==="expense")),spent=cat=>sum(monthly().filter(t=>t.kind==="expense"&&t.category===cat));
 const coveredNames=["Food + Groceries","Diesel","Eating Out"];
-const cardBillsForMonth=()=>data.cardBills.filter(x=>x.date.slice(0,7)===month.value);
+const cardBillsForMonth=()=>((data.cardBills ||= [])).filter(x=>x.date.slice(0,7)===month.value);
 const cardSummary=()=>{const bill=Number(data.variable.find(x=>x.name==="Amazon Credit Card Bill")?.amount)||0;const covered=sum(cardBillsForMonth());const residual=Math.max(0,bill-covered);const other=sum(data.variable.filter(x=>x.name!=="Amazon Credit Card Bill"&&!coveredNames.includes(x.name)));return {bill,covered,residual,total:Math.max(bill,covered)+other,other,over:covered>bill};};
 const btn=(text,action,id="",cls="link")=>'<button class="'+cls+'" data-action="'+action+'" data-id="'+esc(id)+'">'+esc(text)+"</button>";
 const table=(head,rows)=>'<table><thead><tr>'+head.map(h=>"<th>"+esc(h)+"</th>").join("")+"</tr></thead><tbody>"+(rows||'<tr><td colspan="'+head.length+'" class="empty">No entries yet</td></tr>')+"</tbody></table>";
