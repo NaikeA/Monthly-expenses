@@ -76,6 +76,14 @@ for(const [type,factor] of [["quarterly",4],["halfyearly",2],["annual",1]]){
  for(const x of data[type]){const cost=amountAt(x,yr)*factor;recurring+=cost;add(x.category||inferCategory(x.name),cost)}
 }
 let yearlyCard=0,variableOther=0,yearIncome=0;
+for(let m=1;m<=12;m++){
+ const ym=y+"-"+String(m).padStart(2,"0");
+ const entries=data.incomeEntries.filter(x=>x.date.slice(0,7)===ym&&!x.isPlaceholder);
+ const manualSalary=entries.filter(x=>x.category==="Salary");
+ const salary=manualSalary.length?sum(manualSalary):(salaryAt(ym)??0);
+ const extra=sum(entries.filter(x=>x.category!=="Salary"));
+ yearIncome+=salary+extra;
+}
 const months=Object.keys(data.monthlySnapshots||{}).filter(x=>x.startsWith(y+"-")).sort();
 const excluded=["Food + Groceries","Diesel","Eating Out","Amazon Credit Card Bill"];
 for(const ym of months){
@@ -86,13 +94,13 @@ let otherMonth=0;
 for(const x of variable)if(!excluded.includes(x.name)){const cost=Number(x.amount)||0;otherMonth+=cost;add(x.category||inferCategory(x.name),cost)}
 for(const x of charges)add(x.category||inferCategory(x.name),Number(x.amount)||0);
 add("Food",Math.max(0,card-charged));
-yearlyCard+=cardCost;variableOther+=otherMonth;yearIncome+=monthIncome(ym);
+yearlyCard+=cardCost;variableOther+=otherMonth;
 details.push('<tr><td>'+esc(ym)+'</td><td>'+money(cardCost)+'</td><td>'+money(otherMonth)+'</td></tr>')
 }
 const other=recurring+variableOther,total=fixed+yearlyCard+other;
 const rows=Object.entries(totals).filter(x=>x[1]!==0).sort((a,b)=>b[1]-a[1]).map(([cat,value])=>'<tr><td>'+esc(cat)+'</td><td>'+money(value)+'</td></tr>').join("");
 const years=[...new Set([yr,...Object.keys(data.monthlySnapshots||{}).map(k=>Number(k.slice(0,4))),...Object.keys(data.variableMonths||{}).map(k=>Number(k.slice(0,4))),...Object.keys(data.salaryHistory||{}).map(k=>Number(k.slice(0,4))),...Object.keys(data.incomes||{}).map(k=>Number(k.slice(0,4))),2026])].filter(Number.isInteger).sort((a,b)=>b-a);for(let k=yr-2;k<=yr+2;k++)if(!years.includes(k))years.push(k);years.sort((a,b)=>b-a);const picker='<section class="panel"><label for="dashboardYear">Select year </label><select id="dashboardYear">'+years.map(n=>'<option value="'+n+'" '+(n===yr?"selected":"")+'>'+n+'</option>').join("")+'</select></section>';
-return picker+'<div class="cards five-cards">'+card("Yearly income",yearIncome,"Income from entered months")+card("Fixed expenses",fixed,"Monthly fixed expenses × 12")+card("Credit card expenses",yearlyCard,"Only entered months")+card("Other expenses",other,"Full-year recurring bills + entered variable expenses")+card("This years savings",yearIncome-total,"Income minus all expenses")+'</div><div class="two"><section class="panel"><h2>Expenses by category — '+esc(y)+'</h2>'+table(["Category","Yearly expenses"],rows)+'</section><section class="panel"><h2>Variable expenses entered — '+esc(y)+'</h2>'+table(["Month","Credit card","Other variable"],details.join(""))+'</section></div>'+yearlyPie(totals)+'<div class="notice">Fixed expenses are counted for 12 months. Quarterly, half-yearly and annual bills use their full-year equivalents. Credit card and other variable expenses accumulate only as you enter each month. Income is counted only for months with saved expense records.</div>'
+return picker+'<div class="cards five-cards">'+card("Yearly income",yearIncome,"12 months of salary + entered additional income")+card("Fixed expenses",fixed,"Monthly fixed expenses × 12")+card("Credit card expenses",yearlyCard,"Only entered months")+card("Other expenses",other,"Full-year recurring bills + entered variable expenses")+card("This years savings",yearIncome-total,"Income minus all expenses")+'</div><div class="two"><section class="panel"><h2>Expenses by category — '+esc(y)+'</h2>'+table(["Category","Yearly expenses"],rows)+'</section><section class="panel"><h2>Variable expenses entered — '+esc(y)+'</h2>'+table(["Month","Credit card","Other variable"],details.join(""))+'</section></div>'+yearlyPie(totals)+'<div class="notice">Fixed expenses are counted for 12 months. Quarterly, half-yearly and annual bills use their full-year equivalents. Credit card and other variable expenses accumulate only as you enter each month. Yearly income includes salary applicable to all 12 months, including effective-month changes, plus additional income entries. Manually entered salary overrides the default for that month.</div>'
 }
 const pages={dashboard,yearly,income:incomePage,budgets,quarterly,halfyearly,annual,accounts,settings};
 function render(){document.getElementById("title").textContent=({dashboard:"Monthly Dashboard",yearly:"Yearly Dashboard",income:"Income",budgets:"Monthly expenses",quarterly:"Quarterly bills",halfyearly:"Half-yearly expenses",annual:"Annual bills",accounts:"Accounts & savings",settings:"Settings & backup"})[page];document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));document.getElementById("view").innerHTML=pages[page]()}
