@@ -226,7 +226,18 @@ async function exportAndroidPDF(){
  try{
   if(action)action.style.display="none";
   if(heading)heading.style.display="block";
-  const canvas=await window.html2canvas(view,{backgroundColor:"#ffffff",scale:Math.min(2,window.devicePixelRatio||2),useCORS:false,logging:false});
+  // Render a desktop-width, print-sized copy rather than enlarging the narrow phone layout.
+  const pdfWidth=1050;
+  const canvas=await window.html2canvas(view,{backgroundColor:"#ffffff",scale:1.5,windowWidth:pdfWidth,width:pdfWidth,useCORS:false,logging:false,onclone:doc=>{
+   const report=doc.getElementById("view");
+   report.style.width=pdfWidth+"px";
+   report.style.maxWidth="none";
+   report.style.padding="12px";
+   report.style.fontSize="12px";
+   const css=doc.createElement("style");
+   css.textContent="#view .cards{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important}#view .two{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}#view .card{padding:12px!important}#view .card .value{font-size:18px!important;white-space:normal!important}#view .card label{font-size:12px!important}#view .panel{padding:14px!important}#view table{font-size:11px!important}#view th,#view td{padding:5px!important}#view h2{font-size:17px!important}#view h3{font-size:14px!important}#view .hint,#view .muted{font-size:11px!important}#view .pie-layout{max-width:100%!important}";
+   doc.head.appendChild(css);
+  }});
   const pdf=await window.PDFLib.PDFDocument.create();
   const pageW=595.28,pageH=841.89,margin=28,usableW=pageW-2*margin,usableH=pageH-2*margin;
   const pixelsPerPage=Math.max(1,Math.floor(canvas.width*usableH/usableW));
