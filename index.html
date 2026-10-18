@@ -266,11 +266,61 @@ async function exportAndroidPDF(){
    }
    y-=cardH+10;
   }
+  // Vector pie chart and compact bold category table, matching the browser report.
+  const piePanel=view.querySelector(".panel:has(.pie-layout)");
+  if(piePanel){
+   const pieTable=piePanel.querySelector(".pie-table");
+   const pieRows=[...pieTable.querySelectorAll("tbody tr")].map(tr=>{
+    const cells=[...tr.querySelectorAll("td")];
+    const swatch=cells[0]?.querySelector(".pie-dot");
+    const hex=(swatch?.style.backgroundColor||"").trim();
+    const rgbMatch=hex.match(/^rgb\(\s*(\d+),\s*(\d+),\s*(\d+)\s*\)$/);
+    const hexMatch=hex.match(/^#([0-9a-f]{6})$/i);
+    const color=hexMatch?rgb(parseInt(hexMatch[1].slice(0,2),16)/255,parseInt(hexMatch[1].slice(2,4),16)/255,parseInt(hexMatch[1].slice(4,6),16)/255):rgbMatch?rgb(Number(rgbMatch[1])/255,Number(rgbMatch[2])/255,Number(rgbMatch[3])/255):accent;
+    return {name:content(cells[0]),amount:content(cells[1]),expensePct:content(cells[2]),incomePct:content(cells[3]),share:Math.max(0,Number(content(cells[2]).replace("%","").replace(",","."))||0),color};
+   });
+   if(pieRows.length){
+    section(content(piePanel.querySelector("h2"))||"Expenses by category");
+    const rowH=23,headerH=27,chartH=185,blockH=Math.max(chartH,headerH+rowH*pieRows.length)+12;
+    space(blockH);
+    const cx=M+91,cy=y-95,radius=79;
+    const totalShare=pieRows.reduce((n,v)=>n+v.share,0);
+    let angle=Math.PI/2;
+    for(const entry of pieRows){
+     const sweep=totalShare>0?Math.PI*2*entry.share/totalShare:0;
+     if(sweep<=0)continue;
+     const points=["M 0 0"];
+     const steps=Math.max(2,Math.ceil(sweep/(Math.PI/45)));
+     for(let k=0;k<=steps;k++){const a=angle-sweep*k/steps;points.push("L "+(radius*Math.cos(a)).toFixed(3)+" "+(radius*Math.sin(a)).toFixed(3))}
+     points.push("Z");
+     pg.drawSvgPath(points.join(" "),{x:cx,y:cy,color:entry.color});
+     angle-=sweep;
+    }
+    pg.drawCircle({x:cx,y:cy,size:42,color:rgb(1,1,1)});
+    txt("EXPENSES",cx-29,cy+5,8,bold,muted,60);
+    txt("BY CATEGORY",cx-34,cy-9,7.2,bold,muted,70);
+    const tx=M+185,tw=C-185,widths=[tw*.41,tw*.24,tw*.17,tw*.18];
+    const headers=["Category","Amount","% Exp.","% Income"];
+    let ry=y-12;
+    pg.drawRectangle({x:tx,y:ry-10,width:tw,height:25,color:light});
+    let xx=tx;
+    for(let k=0;k<4;k++){txt(headers[k],xx+4,ry,8.6,bold,accent,widths[k]-7);xx+=widths[k]}
+    ry-=headerH;
+    for(const entry of pieRows){
+     xx=tx;
+     const values=[entry.name,entry.amount,entry.expensePct,entry.incomePct];
+     for(let k=0;k<4;k++){txt(values[k],xx+4,ry,9.2,bold,dark,widths[k]-7);xx+=widths[k]}
+     pg.drawLine({start:{x:tx,y:ry-7},end:{x:tx+tw,y:ry-7},thickness:.35,color:line});
+     ry-=rowH;
+    }
+    y-=blockH;
+   }
+  }
   // Render breakdown tables as vector text, not blurry screenshots.
   const panels=[...view.querySelectorAll("section.panel")];
   for(const panel of panels){
    const table=panel.querySelector("table");
-   if(!table)continue;
+   if(!table||panel.querySelector(".pie-layout"))continue;
    const title=content(panel.querySelector("h2"))||"Expense details";
    const head=[...table.querySelectorAll("thead th")].map(content),rows=[...table.querySelectorAll("tbody tr")].map(tr=>[...tr.querySelectorAll("td")].map(content));
    if(!rows.length)continue;
@@ -283,7 +333,7 @@ async function exportAndroidPDF(){
     let x=M;
     for(let k=0;k<count;k++){
      const w=k===0?first:remaining;
-     txt(values[k]||"",x+5,y,header?8:8.5,header?bold:regular,header?accent:dark,w-10);
+     txt(values[k]||"",x+5,y,header?9.5:10, bold,header?accent:dark,w-10);
      x+=w;
     }
     y-=24;
