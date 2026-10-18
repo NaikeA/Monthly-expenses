@@ -96,7 +96,7 @@ for(let m=1;m<=12;m++){
 const months=[...new Set([...Object.keys(data.monthlySnapshots||{}),...Object.keys(data.variableMonths||{})])].filter(x=>x.startsWith(y+"-")).sort();
 const excluded=["Food + Groceries","Diesel","Eating Out","Amazon Credit Card Bill"];
 for(const ym of months){
-const snap=data.monthlySnapshots[ym],variable=data.variableMonths?.[ym]||snap.variable||[];
+const snap=data.monthlySnapshots[ym],variable=data.variableMonths?.[ym]||snap?.variable||[];
 const card=Number(variable.find(x=>x.name==="Amazon Credit Card Bill")?.amount)||0;
 const charges=breakdownByMethod(ym,"Credit Card"),charged=sum(charges),cardCost=card;
 let otherMonth=0;
