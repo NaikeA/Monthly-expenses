@@ -320,7 +320,7 @@ async function exportAndroidPDF(){
    const source=view.querySelector('svg[aria-label*="Projected investment portfolio"]');
    if(source){
     const path=source.querySelector("polyline");
-    const pts=(path?.getAttribute("points")||"").trim().split(/\\s+/).map(pair=>pair.split(",").map(Number)).filter(v=>v.length===2&&v.every(Number.isFinite));
+    const pts=(path?.getAttribute("points")||"").trim().split(/\s+/).map(pair=>pair.split(",").map(Number)).filter(v=>v.length===2&&v.every(Number.isFinite));
     if(pts.length>1){
      section("Portfolio growth by age");
      const chartH=195,chartW=C,srcW=760,srcH=250;
