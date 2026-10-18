@@ -146,8 +146,8 @@ document.getElementById("import").onchange=async e=>{const f=e.target.files[0];i
 })();
 } catch (error) {
  const target=document.getElementById("view");
- if(target)target.innerHTML='<section class="panel"><h2>App could not load</h2><p>There is a problem reading the locally saved expenses. Your saved data has not been deleted.</p><p id="startupError" style="color:#a12e3b"></p><button id="rescueBackup" class="primary">Download my saved data</button><p class="muted">Please share the error message to get the app working again. Do not clear browser data.</p></section>';
- const msg=document.getElementById("startupError");if(msg)msg.textContent=String(error&&error.message||error);
+ if(target)target.innerHTML='<section class="panel"><h2>App could not load</h2><p>There is a problem reading the locally saved expenses. Your saved data has not been deleted.</p><p id="startupError" style="color:#a12e3b"></p><button id="rescueBackup" class="primary">Download my saved data</button><p class="muted">Please share the error message to get the app working again. Do not clear browser data. Try Ctrl + Shift + R to load the latest version.</p></section>';
+ const msg=document.getElementById("startupError");if(msg)msg.textContent=String(error&&error.stack||error&&error.message||error);
  const backup=document.getElementById("rescueBackup");if(backup)backup.onclick=()=>{const raw=localStorage.getItem("monthly-expenses-naikea-v1");if(raw===null)return alert("No saved data found.");const link=document.createElement("a"),url=URL.createObjectURL(new Blob([raw],{type:"application/json"}));link.href=url;link.download="monthly-expenses-recovery.json";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 }
 </script></body></html>
