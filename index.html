@@ -58,7 +58,7 @@ function yearlyPie(totals){const colors=["#3465db","#16a085","#f59e0b","#8b5cf6"
 function yearly(){
 const y=month.value.slice(0,4),totals={},details=[],months=Object.keys(data.monthlySnapshots||{}).filter(x=>x.startsWith(y+"-")).sort();
 const add=(cat,n)=>{totals[cat]=(totals[cat]||0)+n};
-let yearlyCard=0,yearIncome=0,yearExpense=0;
+let yearlyCard=0,yearIncome=0,yearExpense=0,yearFixed=0,yearOther=0;
 for(const ym of months){
 const snap=data.monthlySnapshots[ym],fixed=snap.fixed||[],variable=snap.variable||[];
 const excluded=["Food + Groceries","Diesel","Eating Out","Amazon Credit Card Bill"];
@@ -73,11 +73,11 @@ const yr=Number(y),recurring=historicTotal("quarterly",yr)/3+historicTotal("half
 for(const type of ["quarterly","halfyearly","annual"]){const divisor={quarterly:3,halfyearly:6,annual:12}[type];for(const x of data[type])add(x.category||inferCategory(x.name),amountAt(x,yr)/divisor)}
 const v=variable.filter(x=>!excluded.includes(x.name)).reduce((a,x)=>a+(Number(x.amount)||0),0);
 const monthExpense=sum(fixed)+v+effectiveCard+recurring;
-yearExpense+=monthExpense;yearlyCard+=effectiveCard;yearIncome+=Number(data.incomes[ym]??snap.income)||0;
+yearExpense+=monthExpense;yearFixed+=sum(fixed);yearOther+=v+recurring;yearlyCard+=effectiveCard;yearIncome+=Number(data.incomes[ym]??snap.income)||0;
 details.push('<tr><td>'+esc(ym)+'</td><td>'+money(monthExpense)+'</td></tr>')
 }
 const rows=Object.entries(totals).sort((a,b)=>b[1]-a[1]).map(([cat,value])=>'<tr><td>'+esc(cat)+'</td><td>'+money(value)+'</td></tr>').join("");
-return '<div class="cards">'+card("Entered months expenses",yearExpense,"Only months with saved expense records")+card("Entered months income",yearIncome,"Only entered months")+card("Income minus expenses",yearIncome-yearExpense,"For entered months")+card("Amazon card expenses",yearlyCard,"Included in categories")+'</div><div class="two"><section class="panel"><h2>Expenses by category — '+esc(y)+'</h2>'+table(["Category","Recorded monthly equivalents"],rows)+'</section><section class="panel"><h2>Monthly expense breakdown — '+esc(y)+'</h2>'+table(["Month","Expense equivalent"],details.join(""))+'</section></div>'+yearlyPie(totals)+'<div class="notice">Only months you have entered are shown. Prior months are not estimated from October. Recurring quarterly, half-yearly and annual expenses appear as monthly equivalents for entered months, not payment dates. Your existing October 2026 expenses are the first saved monthly snapshot.</div>'
+return '<div class="cards five-cards">'+card("Yearly income",yearIncome,"Only entered months")+card("Fixed expenses",yearFixed,"For entered months")+card("Credit card expenses",yearlyCard,"Amazon card spending")+card("Other expenses",yearOther,"Other monthly costs and recurring bill shares")+card("This years savings",yearIncome-yearExpense,"Income minus expenses")+'</div><div class="two"><section class="panel"><h2>Expenses by category — '+esc(y)+'</h2>'+table(["Category","Recorded monthly equivalents"],rows)+'</section><section class="panel"><h2>Monthly expense breakdown — '+esc(y)+'</h2>'+table(["Month","Expense equivalent"],details.join(""))+'</section></div>'+yearlyPie(totals)+'<div class="notice">Only months you have entered are shown. Prior months are not estimated from October. Recurring quarterly, half-yearly and annual expenses appear as monthly equivalents for entered months, not payment dates. Your existing October 2026 expenses are the first saved monthly snapshot.</div>'
 }
 const pages={dashboard,yearly,budgets,quarterly,halfyearly,annual,accounts,settings};
 function render(){document.getElementById("title").textContent=({dashboard:"Monthly Dashboard",yearly:"Yearly Dashboard",budgets:"Monthly expenses",quarterly:"Quarterly bills",halfyearly:"Half-yearly expenses",annual:"Annual bills",accounts:"Accounts & savings",settings:"Settings & backup"})[page];document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));document.getElementById("view").innerHTML=pages[page]()}
