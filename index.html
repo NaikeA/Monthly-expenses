@@ -266,7 +266,7 @@ const years=[...new Set([yr,...Object.keys(data.monthlySnapshots||{}).map(k=>Num
 return picker+'<div class="cards five-cards">'+card("Yearly income",yearIncome,"12 months of salary + entered additional income")+expenseCard("Fixed & Recurring Expenses",fixedAndRecurring,"Yearly fixed and recurring bills, all payment methods",yearIncome)+expenseCard("Other Credit Card Spending",yearlyCard,"Excludes quarterly, half-yearly and annual bills; entered months only",yearIncome)+expenseCard("Other expenses",other,"Only entered non-card variable expenses",yearIncome)+expenseCard("Total Yearly Expenses",total,"Direct debit + credit card + other expenses",yearIncome)+expenseCard("Average Monthly Expenses",total/12,"Yearly total expenses ÷ 12",yearIncome/12)+expenseCard("Investments (ETFs & Stocks)",invested,"Contributions in selected year",yearIncome)+expenseCard("Cash Savings",savings-invested,"Savings remaining after investments",yearIncome)+expenseCard("Total Savings",savings,"Cash savings + investments",yearIncome)+'</div><div class="two"><section class="panel"><h2>Expenses by category — '+esc(y)+'</h2>'+table(["Category","Yearly expenses"],rows)+'</section><section class="panel"><h2>Variable expenses entered — '+esc(y)+'</h2>'+table(["Month","Credit card","Other variable"],details.join(""))+'</section></div><section class="panel"><h2>Scheduled card payments — '+esc(y)+'</h2><p class="muted">Recurring card bills are included in the manually entered credit card total and excluded from fixed expenses.</p>'+table(["Recurring bill","Tracked amount"],breakdownRows)+'</section>'+yearlyPie(totals,yearIncome)+'<div class="notice">Fixed expenses include direct-debit recurring bills. Recurring credit card charges are included in the manually entered card total, not added separately. Yearly income includes salary applicable to all 12 months, including effective-month changes, plus additional income entries. Manually entered salary overrides the default for that month.</div>'
 }
 const pages={dashboard,yearly,income:incomePage,budgets,growth:investmentGrowth,quarterly,halfyearly,annual,accounts,settings};
-function render(){document.getElementById("title").textContent=({dashboard:"Monthly Dashboard",yearly:"Yearly Dashboard",income:"Income",budgets:"Monthly expenses",growth:"Potential Investment Portfolio Growth",quarterly:"Quarterly bills",halfyearly:"Half-yearly expenses",annual:"Annual bills",accounts:"Accounts & savings",settings:"Settings & backup"})[page];document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));document.getElementById("view").innerHTML=(page==="dashboard"||page==="yearly"?'<div class="pdf-actions"><button type="button" class="primary" data-action="exportDashboardPDF">Export dashboard as PDF</button><span class="muted">Export or save a PDF report</span></div><div class="print-report-heading"><h2>'+ (page==="dashboard"?"Monthly Dashboard — "+month.value:"Yearly Dashboard — "+(selectedDashboardYear||Number(month.value.slice(0,4))))+'</h2><p>Monthly Expenses — financial overview</p></div>':"")+pages[page]()}
+function render(){document.getElementById("title").textContent=({dashboard:"Monthly Dashboard",yearly:"Yearly Dashboard",income:"Income",budgets:"Monthly expenses",growth:"Potential Investment Portfolio Growth",quarterly:"Quarterly bills",halfyearly:"Half-yearly expenses",annual:"Annual bills",accounts:"Accounts & savings",settings:"Settings & backup"})[page];document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));document.getElementById("view").innerHTML=(["dashboard","yearly","growth","accounts"].includes(page)?'<div class="pdf-actions"><button type="button" class="primary" data-action="exportDashboardPDF">Export page as PDF</button><span class="muted">Export or save a PDF report</span></div><div class="print-report-heading"><h2>'+ (page==="dashboard"?"Monthly Dashboard — "+month.value:page==="yearly"?"Yearly Dashboard — "+(selectedDashboardYear||Number(month.value.slice(0,4))):page==="growth"?"Potential Investment Portfolio Growth":"Accounts & savings — "+month.value)+'</h2><p>Monthly Expenses — financial overview</p></div>':"")+pages[page]()}
 function field(name,label,val,type="text"){return '<label>'+esc(label)+'<input name="'+name+'" type="'+type+'" '+(type==="number"?'min="0" step=".01"':"")+' required value="'+esc(val??"")+'"></label>'}
 function popup(title,fields,cb){document.getElementById("fields").innerHTML="<h2>"+esc(title)+'</h2><div class="stack">'+fields+"</div>";document.getElementById("dialog").showModal();document.getElementById("form").onsubmit=e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));if(cb(fd)!==false){snapshotMonth();document.getElementById("dialog").close();render()}}}
 function itemEdit(type,id){const old=id?(type==="accounts"?accountMonth():type==="variable"?monthlyVariable():data[type]).find(x=>x.id===id):null,account=type==="accounts",historical=historicalTypes.includes(type),isFixed=type==="fixed",selected=historical?billPageYear(type):year();
@@ -298,8 +298,8 @@ async function exportAndroidPDF(){
   const space=h=>{if(y-h<M+24)newPage()};
   const txt=(v,x,pos,size=10,font=regular,color=dark,width=C)=>pg.drawText(fit(v,font,size,width),{x,y:pos,size,font,color});
   const section=name=>{space(34);y-=15;txt(name,M,y,13,bold,accent);y-=12;pg.drawLine({start:{x:M,y},end:{x:W-M,y},thickness:.6,color:line});y-=12};
-  const reportYear=selectedDashboardYear||year(),period=page==="dashboard"?"Monthly report - "+month.value:"Yearly report - "+reportYear;
-  newPage();txt(period,M,y,21,bold,dark);y-=22;txt("Income, expenses, investments and savings",M,y,10,regular,muted);y-=22;
+  const reportYear=selectedDashboardYear||year(),period=page==="dashboard"?"Monthly report - "+month.value:page==="yearly"?"Yearly report - "+reportYear:page==="growth"?"Investment portfolio projection":"Accounts report - "+month.value;
+  newPage();txt(period,M,y,21,bold,dark);y-=22;txt(page==="growth"?"Retirement projection with selected withdrawals":page==="accounts"?"Account balances for "+month.value:"Income, expenses, investments and savings",M,y,10,regular,muted);y-=22;
   const view=document.getElementById("view");
   const cards=[...view.querySelectorAll(".cards .card")].map(el=>({name:content(el.querySelector("label")),value:content(el.querySelector(".value")),hint:content(el.querySelector(".hint"))}));
   const cardWidth=(C-14)/2,cardH=76;
@@ -314,6 +314,37 @@ async function exportAndroidPDF(){
     txt(c.hint,x+10,top-61,7.5,regular,muted,cardWidth-20);
    }
    y-=cardH+10;
+  }
+  // Export the retirement growth chart as scalable PDF vector lines, not a screenshot.
+  if(page==="growth"){
+   const source=view.querySelector('svg[aria-label*="Projected investment portfolio"]');
+   if(source){
+    const path=source.querySelector("polyline");
+    const pts=(path?.getAttribute("points")||"").trim().split(/\\s+/).map(pair=>pair.split(",").map(Number)).filter(v=>v.length===2&&v.every(Number.isFinite));
+    if(pts.length>1){
+     section("Portfolio growth by age");
+     const chartH=195,chartW=C,srcW=760,srcH=250;
+     space(chartH+16);
+     const originX=M,originY=y-chartH;
+     pg.drawRectangle({x:originX,y:originY,width:chartW,height:chartH,borderWidth:.5,borderColor:line,color:rgb(1,1,1)});
+     for(let k=0;k<=4;k++){const gy=originY+chartH*k/4;pg.drawLine({start:{x:originX,y:gy},end:{x:originX+chartW,y:gy},thickness:.3,color:line})}
+     const sx=v=>originX+chartW*v/srcW,sy=v=>originY+chartH*(1-v/srcH);
+     for(let k=1;k<pts.length;k++)pg.drawLine({start:{x:sx(pts[k-1][0]),y:sy(pts[k-1][1])},end:{x:sx(pts[k][0]),y:sy(pts[k][1])},thickness:2,color:accent});
+     for(const dot of source.querySelectorAll("circle")){
+      const cx=Number(dot.getAttribute("cx")),cy=Number(dot.getAttribute("cy"));
+      if(Number.isFinite(cx)&&Number.isFinite(cy))pg.drawCircle({x:sx(cx),y:sy(cy),size:3.1,color:rgb(.85,.36,.24)});
+     }
+     const ageA=Number(data.investmentCurrentAge)||38,ageB=Number(data.investmentRetirementAge)||67;
+     txt("Age "+ageA,originX+6,originY+7,8,bold,muted,70);
+     txt("Retirement age "+ageB,originX+chartW-115,originY+7,8,bold,muted,112);
+     y=originY-18;
+    }
+   }
+   const chosenYear=Number(data.investmentAverageYear)||Number(month.value.slice(0,4));
+   const chosenMonths=Array.isArray(data.investmentAverageSelectedMonths?.[chosenYear])?data.investmentAverageSelectedMonths[chosenYear]:Object.entries(data.investmentMonths||{}).filter(([k,v])=>k.startsWith(chosenYear+"-")&&Number(v)>0).map(([k])=>Number(k.slice(5)));
+   section("Investment averaging assumptions");
+   space(40);txt("Selected year: "+chosenYear,M,y,10,bold,dark);y-=16;
+   txt("Months: "+(chosenMonths.length?chosenMonths.slice().sort((a,b)=>a-b).map(n=>String(n).padStart(2,"0")).join(", "):"None"),M,y,9,regular,muted);y-=24;
   }
   // Vector pie chart and compact bold category table, matching the browser report.
   const piePanel=view.querySelector(".panel:has(.pie-layout)");
@@ -447,7 +478,7 @@ async function exportAndroidPDF(){
   }
   const bytes=await pdf.save();let binary="";
   for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
-  const name="Monthly-Expenses-"+(page==="dashboard"?"Monthly-"+month.value:"Yearly-"+reportYear)+".pdf";
+  const name="Monthly-Expenses-"+(page==="dashboard"?"Monthly-"+month.value:page==="yearly"?"Yearly-"+reportYear:page==="growth"?"Investment-Growth":"Accounts-"+month.value)+".pdf";
   const result=await plugins.Filesystem.writeFile({path:name,data:btoa(binary),directory:"CACHE",recursive:true});
   await plugins.Share.share({title:"Monthly Expenses PDF",text:name,url:result.uri,dialogTitle:"Save or share PDF"});
  }catch(err){console.error("Android PDF export failed",err);alert("Could not create or share PDF: "+(err?.message||String(err)))}
