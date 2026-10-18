@@ -280,9 +280,13 @@ async function exportAndroidPDF(){
     return {name:content(cells[0]),amount:content(cells[1]),expensePct:content(cells[2]),incomePct:content(cells[3]),share:Math.max(0,Number(content(cells[2]).replace("%","").replace(",","."))||0),color};
    });
    if(pieRows.length){
-    section(content(piePanel.querySelector("h2"))||"Expenses by category");
     const rowH=23,headerH=27,chartH=185,blockH=Math.max(chartH,headerH+rowH*pieRows.length)+12;
-    space(blockH);
+    // Reserve space for BOTH the heading and chart/table so they cannot split.
+    // If a year has many categories, show the full category table on following pages.
+    const chartTitle=content(piePanel.querySelector("h2"))||"Expenses by category";
+    const sideBySide=pieRows.length<=12;
+    space(39+(sideBySide?blockH:chartH+12));
+    section(chartTitle);
     const cx=M+91,cy=y-95,radius=79;
     const totalShare=pieRows.reduce((n,v)=>n+v.share,0);
     let angle=Math.PI/2;
@@ -299,21 +303,43 @@ async function exportAndroidPDF(){
     pg.drawCircle({x:cx,y:cy,size:42,color:rgb(1,1,1)});
     txt("EXPENSES",cx-29,cy+5,8,bold,muted,60);
     txt("BY CATEGORY",cx-34,cy-9,7.2,bold,muted,70);
-    const tx=M+185,tw=C-185,widths=[tw*.41,tw*.24,tw*.17,tw*.18];
+    const tableX=sideBySide?M+185:M,tableW=sideBySide?C-185:C;
+    const widths=sideBySide?[tableW*.41,tableW*.24,tableW*.17,tableW*.18]:[tableW*.48,tableW*.22,tableW*.15,tableW*.15];
     const headers=["Category","Amount","% Exp.","% Income"];
-    let ry=y-12;
-    pg.drawRectangle({x:tx,y:ry-10,width:tw,height:25,color:light});
-    let xx=tx;
-    for(let k=0;k<4;k++){txt(headers[k],xx+4,ry,8.6,bold,accent,widths[k]-7);xx+=widths[k]}
-    ry-=headerH;
+    // The chart stays with its own table when short. Long tables move to
+    // the full-page layout with repeated headings and no clipped rows.
+    if(!sideBySide){
+     y-=chartH+12;
+     space(68);
+     section("Category breakdown - detailed amounts");
+    }
+    let tableTop=y,ry=y-12;
+    const tableHeader=()=>{
+     pg.drawRectangle({x:tableX,y:ry-10,width:tableW,height:25,color:light});
+     let xx=tableX;
+     for(let k=0;k<4;k++){txt(headers[k],xx+4,ry,8.6,bold,accent,widths[k]-7);xx+=widths[k]}
+     ry-=headerH;
+    };
+    tableHeader();
     for(const entry of pieRows){
-     xx=tx;
+     if(ry-rowH<M+24){
+      if(sideBySide) y=Math.min(tableTop-chartH-12,ry-8);
+      newPage();
+      y-=14;
+      txt("Category breakdown (continued)",M,y,12,bold,accent);
+      y-=20;
+      tableTop=y;
+      ry=y-12;
+      tableHeader();
+     }
+     let xx=tableX;
      const values=[entry.name,entry.amount,entry.expensePct,entry.incomePct];
      for(let k=0;k<4;k++){txt(values[k],xx+4,ry,9.2,bold,dark,widths[k]-7);xx+=widths[k]}
-     pg.drawLine({start:{x:tx,y:ry-7},end:{x:tx+tw,y:ry-7},thickness:.35,color:line});
+     pg.drawLine({start:{x:tableX,y:ry-7},end:{x:tableX+tableW,y:ry-7},thickness:.35,color:line});
      ry-=rowH;
     }
-    y-=blockH;
+    y=sideBySide&&tableTop===y?Math.min(tableTop-chartH-12,ry-12):ry-12;
+
    }
   }
   // Render breakdown tables as vector text, not blurry screenshots.
@@ -324,6 +350,8 @@ async function exportAndroidPDF(){
    const title=content(panel.querySelector("h2"))||"Expense details";
    const head=[...table.querySelectorAll("thead th")].map(content),rows=[...table.querySelectorAll("tbody tr")].map(tr=>[...tr.querySelectorAll("td")].map(content));
    if(!rows.length)continue;
+   // Keep the title, column headers and first rows on the same page.
+   space(39+(head.length?24:0)+Math.min(rows.length,3)*24);
    section(title);
    // Give category/name first column room; truncate oversized cells only in the report.
    const count=Math.max(head.length,...rows.map(r=>r.length)),first=count===1?C:C*.43,remaining=count>1?(C-first)/(count-1):0;
@@ -340,15 +368,26 @@ async function exportAndroidPDF(){
     pg.drawLine({start:{x:M,y:y+7},end:{x:W-M,y:y+7},thickness:.35,color:line});
    };
    if(head.length)drawRow(head,true);
-   for(const row of rows)drawRow(row);
+   for(const row of rows){
+    if(y-24<M+24){
+     newPage();
+     y-=14;
+     txt(title+" (continued)",M,y,12,bold,accent);
+     y-=22;
+     if(head.length)drawRow(head,true);
+    }
+    drawRow(row);
+   }
    y-=7;
   }
   // Expense frequency bars are drawn as vectors too.
   const freq=[...view.querySelectorAll(".barhead")];
   if(freq.length){
-   section("Expense frequency breakdown");
    const values=freq.map(el=>({label:content(el.querySelector("span")),amount:content(el.querySelector("strong"))}));
-   for(const v of values){space(24);txt(v.label,M,y,9,regular,dark,C*.47);txt(v.amount,M+C*.49,y,9,bold,dark,C*.51);y-=23}
+   // Never orphan this heading at the bottom of one page while rows begin on the next.
+   space(39+values.length*23);
+   section("Expense frequency breakdown");
+   for(const v of values){space(24);txt(v.label,M,y,9,bold,dark,C*.47);txt(v.amount,M+C*.49,y,9,bold,dark,C*.51);y-=23}
   }
   for(let n=0;n<pdf.getPageCount();n++){
    const p=pdf.getPage(n);
