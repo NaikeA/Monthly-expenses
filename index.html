@@ -161,7 +161,7 @@ function investments(){return '<section class="panel"><div class="heading"><h2>I
 // This is a forecast based on recorded contributions, not a broker account valuation.
 function investmentGrowth(){
  const records=Object.entries(data.investmentMonths||{}).filter(([k,v])=>/^\d{4}-(0[1-9]|1[0-2])$/.test(k)&&k<=month.value&&Number.isFinite(Number(v))&&Number(v)>=0).sort((a,b)=>a[0].localeCompare(b[0]));
- const recent=records.filter(([k])=>{const [y,m]=k.split("-").map(Number),[cy,cm]=month.value.split("-").map(Number);const d=(cy-y)*12+cm-m;return d>=0&&d<12});
+ const recent=records.filter(([k])=>{const [y,m]=k.split("-").map(Number),[cy,cm]=month.value.split("-").map(Number);const d=(cy-y)*12+cm-m;return d>=0&&d<12&&Number(records.find(([key])=>key===k)?.[1])>0});
  const contributed=records.reduce((n,[,v])=>n+Number(v),0);
  const average=recent.length?recent.reduce((n,[,v])=>n+Number(v),0)/recent.length:0;
  const age=Math.max(18,Math.min(100,Math.floor(Number(data.investmentCurrentAge)||38)));
