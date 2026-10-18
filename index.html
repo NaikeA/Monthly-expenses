@@ -22,7 +22,7 @@ const inferCategory=n=>{n=String(n||"").toLowerCase();for(const [rx,c] of [[/ren
 if(!Array.isArray(data.categories))data.categories=baseCategories.slice();
 for(const type of ["fixed","variable","quarterly","halfyearly","annual"])for(const x of data[type])if(!x.category)x.category=inferCategory(x.name);
 for(const t of data.transactions)if(!t.group)t.group=inferCategory(t.category);
-const categoryOptions=selected=>[...new Set([...data.categories,"Credit Card",selected].filter(Boolean))].map(c=>'<option value="'+esc(c)+'" '+(selected===c?"selected":"")+'>'+esc(c)+'</option>').join("");
+const categoryOptions=selected=>[...new Set([...data.categories,"Credit Card",selected].filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:"base"})).map(c=>'<option value="'+esc(c)+'" '+(selected===c?"selected":"")+'>'+esc(c)+'</option>').join("");
 let page="dashboard";const monthly=()=>data.transactions.filter(t=>t.date.slice(0,7)===month.value),income=()=>monthIncome(month.value),actual=()=>sum(monthly().filter(t=>t.kind==="expense")),spent=cat=>sum(monthly().filter(t=>t.kind==="expense"&&t.category===cat));
 const historicalTypes=["annual","quarterly","halfyearly"];const year=()=>Number(month.value.slice(0,4));const amountAt=(x,y)=>{if(!x.amountHistory)return Number(x.amount)||0;const yrs=Object.keys(x.amountHistory).map(Number).filter(v=>v<=y).sort((a,b)=>b-a);return yrs.length?Number(x.amountHistory[yrs[0]])||0:0};const historicTotal=(type,y)=>data[type].reduce((sum,x)=>sum+amountAt(x,y),0);
 for(const type of historicalTypes)for(const x of data[type])if(!x.amountHistory)x.amountHistory={"2026":Number(x.amount)||0};
