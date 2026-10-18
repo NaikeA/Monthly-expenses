@@ -51,6 +51,11 @@ Object.keys(defaults).forEach(k=>{if(data[k]===undefined)data[k]=structuredClone
 for(const type of ["fixed","variable","quarterly","halfyearly","annual","accounts","transactions","cardBills"]){if(!Array.isArray(data[type]))data[type]=structuredClone(defaults[type])}
 // Preserve existing credit card totals when renaming the legacy label.
 for(const list of [data.variable,...Object.values(data.variableMonths||{}),...Object.values(data.monthlySnapshots||{}).map(x=>x?.variable)])if(Array.isArray(list))for(const x of list)if(x.name==="Amazon Credit Card Bill")x.name="Credit Card Bill";
+// Remove legacy zero-value starter expense without erasing amounts users recorded.
+const removeEmptyLegacyMedicine=rows=>Array.isArray(rows)?rows.filter(x=>x.name!=="Aai Medicines"||Number(x.amount)!==0):rows;
+data.variable=removeEmptyLegacyMedicine(data.variable);
+for(const k of Object.keys(data.variableMonths||{}))data.variableMonths[k]=removeEmptyLegacyMedicine(data.variableMonths[k]);
+for(const snap of Object.values(data.monthlySnapshots||{}))if(snap&&Array.isArray(snap.variable))snap.variable=removeEmptyLegacyMedicine(snap.variable);
 if(!data.incomes||typeof data.incomes!=="object")data.incomes={};if(!data.variable.some(x=>x.name==="Credit Card Bill"))data.variable.push({...item("Credit Card Bill",0),category:"Credit Card"});const save=()=>queueEncryptedSave();const month=document.getElementById("month");month.value=new Date().toLocaleDateString("en-CA").slice(0,7);if(!/^\d{4}-\d{2}$/.test(month.value))month.value=new Date().toISOString().slice(0,7);const baseCategories=["Rent","Internet","Electricity","Car","Gym","Monoxidil","Insurance","Food","Leisure","Travel","Education","Healthcare","Shopping","Banking","Subscriptions","Other expenses"];
 const inferCategory=n=>{n=String(n||"").toLowerCase();for(const [rx,c] of [[/rent/,"Rent"],[/internet/,"Internet"],[/electricity/,"Electricity"],[/diesel|car|tüv|tire|municipality/,"Car"],[/gym/,"Gym"],[/monoxidil|minoxidil/,"Monoxidil"],[/insurance|liability|huk/,"Insurance"],[/grocer|food|eating out|restaurant/,"Food"],[/pleasure/,"Leisure"],[/trip/,"Travel"],[/education|course/,"Education"],[/medicine/,"Healthcare"],[/amazon|shopping/,"Shopping"],[/bank/,"Banking"],[/netflix|radio/,"Subscriptions"]])if(rx.test(n))return c;return "Other expenses"};
 if(!Array.isArray(data.categories))data.categories=baseCategories.slice();
@@ -63,7 +68,7 @@ for(const type of historicalTypes)for(const x of data[type])if(!x.amountHistory)
 if(!data.monthlySnapshots||typeof data.monthlySnapshots!=="object")data.monthlySnapshots={};
 const snapshot=()=>({fixed:data.fixed.map(x=>({...x})),variable:monthlyVariable().map(x=>({...x})),income:Number(data.incomes[month.value]??data.income)||0});
 const snapshotMonth=()=>{data.monthlySnapshots[month.value]=snapshot();save()};
-if(!Object.keys(data.monthlySnapshots).length){data.monthlySnapshots["2026-10"]={fixed:data.fixed.map(x=>({...x})),variable:data.variable.map(x=>({...x})),income:Number(data.incomes["2026-10"]??data.income)||0};save()}
+// New users begin with no historical month prefilled; existing snapshots are preserved.
 if(!Array.isArray(data.incomeEntries))data.incomeEntries=[];if(!Array.isArray(data.incomeCategories))data.incomeCategories=["Salary","Unemployment benefit","Interest","Dividends","Refund","Other income"];
 if(!data.salaryHistory)data.salaryHistory={};
 const salaryAt=ym=>{const k=Object.keys(data.salaryHistory).filter(x=>x<=ym).sort().pop();return k===undefined?null:Number(data.salaryHistory[k])||0};
