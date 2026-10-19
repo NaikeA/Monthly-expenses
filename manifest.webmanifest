@@ -9,10 +9,17 @@
   "theme_color": "#101d35",
   "icons": [
     {
+      "src": "apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "any"
+    },
+    {
       "src": "app-icon.svg",
       "type": "image/svg+xml",
       "sizes": "any",
       "purpose": "any"
     }
-  ]
+  ],
+  "id": "/Monthly-expenses/"
 }
