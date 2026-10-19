@@ -11,7 +11,7 @@ This is the easiest option if you use Linux Mint:
 3. Select **Add to Home Screen**.
 4. Turn on **Open as Web App**, if offered, then tap **Add**.
 
-The icon opens the website as a standalone home-screen web app. This is **not** a compiled App Store app and should not be relied on for offline access. The browser version keeps using the browser's PDF print/export facility.
+The icon opens the website as a standalone home-screen web app, **without Apple signing or App Store approval**. This is **not** a compiled native iPhone app. After the first successful online visit, the app shell can reopen offline on supported iOS versions using a service worker. **iOS can evict cached website data**, so do not rely on this as your only financial backup. The browser version uses the browser's PDF print/export facility; PDF sharing may vary in iPhone standalone mode.
 
 ## Native iPhone app (Capacitor)
 
@@ -56,10 +56,14 @@ To distribute a signed iPhone build or use TestFlight, configure Apple signing a
 ## Data, PDF and privacy
 
 - The native iOS app bundles the web files and should work offline once installed. PDF export uses the existing vector PDF generator and the device share sheet; test this on a physical iPhone.
-- The home-screen web app uses Safari-managed website data and the online GitHub Pages site. The native iOS app has its own data storage.
+- The home-screen web app uses iOS website storage and a locally cached application shell. It can work offline after the initial online load, although iOS storage/cache eviction is possible. The native iOS app uses separate storage.
 - **There is no automatic cross-device sync** between your desktop browser, Android, iPhone home-screen app or native iOS app.
 - Move records via **Settings & Backup → Export JSON backup** and **Import JSON backup**.
 - **JSON backups are plaintext financial data**, even if your app normally uses a password. Store and transfer them privately; delete unneeded copies.
 - Always test iOS backup import/export and PDF sharing before relying on the app for financial records.
 
 The existing Android build, Android app identifier and GitHub Pages deployment remain separate and unchanged.
+
+## Sharing with a friend
+
+Send the URL https://naikea.github.io/Monthly-expenses/ and ask your friend to open it in **Safari** on their own iPhone and choose **Share → Add to Home Screen → Add**. It installs as an independent Home Screen web app with its own data. It requires **no Apple Store, Apple Developer account, certificate or signing process**. The publicly hosted code contains **no personal financial data**; all financial records are created and saved on the friend's own device. Passwords and other stored records are not synchronized between devices.
