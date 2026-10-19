@@ -6,6 +6,7 @@ await mkdir(resolve(root,"dist"),{recursive:true});
 await copyFile(resolve(root,"index.html"),resolve(root,"dist/index.html"));
 await copyFile(resolve(root,"manifest.webmanifest"),resolve(root,"dist/manifest.webmanifest"));
 await copyFile(resolve(root,"app-icon.svg"),resolve(root,"dist/app-icon.svg"));
+await copyFile(resolve(root,"sw.js"),resolve(root,"dist/sw.js"));
 await copyFile(resolve(root,"node_modules/html2canvas/dist/html2canvas.min.js"),resolve(root,"dist/html2canvas.min.js"));
 await copyFile(resolve(root,"node_modules/pdf-lib/dist/pdf-lib.min.js"),resolve(root,"dist/pdf-lib.min.js"));
 const { readFile, writeFile } = await import("node:fs/promises");
