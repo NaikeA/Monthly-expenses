@@ -1,6 +1,7 @@
 node_modules/
 dist/
 android/
+ios/
 .gradle/
 *.keystore
 *.jks
