@@ -4,7 +4,8 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./app-icon.svg"
+  "./app-icon.svg",
+  "./apple-touch-icon.png"
 ];
 self.addEventListener("install", event => {
   event.waitUntil(
@@ -30,7 +31,7 @@ self.addEventListener("fetch", event => {
   const isDocument = req.mode === "navigate" ||
     url.pathname.endsWith("/index.html") ||
     url.pathname === new URL(self.registration.scope).pathname;
-  const isAsset = /\/(?:manifest\.webmanifest|app-icon\.svg)$/.test(url.pathname);
+  const isAsset = /\/(?:manifest\.webmanifest|app-icon\.svg|apple-touch-icon\.png)$/.test(url.pathname);
   if (!isDocument && !isAsset) return;
   if (isAsset) {
     event.respondWith(caches.match(req).then(cached => cached ||
